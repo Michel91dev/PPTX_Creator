@@ -47,7 +47,7 @@ with col_config:
     st.header("1. Configuration")
     mode = st.radio(
         "Choisir le moteur :",
-        ["Texte Seul (Instant)", "Images Web (URLs)", "IA Locale (Stable Diffusion)"],
+        ["Texte Seul (Instant)", "IA Locale (Stable Diffusion)"],
         index=0
     )
 
@@ -69,6 +69,14 @@ with col_config:
             help="Si décoché, seule la première slide aura une image IA (plus rapide pour les tests)."
         )
 
+    # Photos optionnelles par slide (utilisées uniquement en mode Texte Seul)
+    uploaded_images = st.file_uploader(
+        "Photos pour les slides (slide 1, slide 2, etc.)",
+        type=["png", "jpg", "jpeg"],
+        accept_multiple_files=True,
+        help="La 1ère image sera utilisée pour le slide 1, la 2ème pour le slide 2, etc. Si le TITRE commence par '3 -', on utilisera la 3ème image."
+    )
+
     st.info("""
     **Format attendu pour le copier-coller :**
 
@@ -76,7 +84,14 @@ with col_config:
     POINTS:
     - Premier point clé
     - Deuxième point clé
-    VISUEL: (URL ou Prompt IA)
+    VISUEL: description courte de l'image souhaitée **en langage naturel**
+
+    Exemples de VISUEL pour l'IA locale :
+    - "photo aérienne du campus HEC au lever du soleil, style réaliste corporate"
+    - "illustration flat design minimaliste d'étudiants travaillant en groupe dans une salle de cours moderne"
+    - "vue isométrique d'un bâtiment de business school entouré d'arbres, couleurs sobres bleu et gris"
+
+    Vous pouvez aussi mettre une **URL d'image** (http...) si vous utilisez le mode "Texte Seul (Instant)".
     """)
 
 with col_content:
@@ -98,11 +113,8 @@ with col_content:
 
             # ROUTAGE SELON LE MODE
             if "Texte" in mode:
-                resultat_pptx = engine.generate_text_only(data)
-
-            elif "Web" in mode:
-                with st.spinner("Téléchargement des images..."):
-                    resultat_pptx = engine.generate_web_images(data)
+                # On passe la liste brute des fichiers uploadés au backend
+                resultat_pptx = engine.generate_text_only(data, image_files=uploaded_images)
 
             elif "IA Locale" in mode:
                 # Deux barres de progression spécifiques pour l'IA

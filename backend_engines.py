@@ -1,3 +1,4 @@
+import re
 import requests
 import torch
 from io import BytesIO
@@ -49,14 +50,39 @@ def add_slide_layout(pres, titre, points, image_stream=None):
         slide.shapes.add_picture(image_stream, Inches(5.8), Inches(1.8), width=Inches(3.8))
 
 # --- MOTEUR 1 : TEXTE SEUL ---
-def generate_text_only(data_slides, filename="Sortie_Texte.pptx", global_image_stream=None):
+def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=None):
     """Génère une présentation texte seul.
 
-    Si global_image_stream est fourni, la même image est utilisée sur toutes les slides.
+    image_files : liste optionnelle de fichiers Streamlit uploadés.
+    - Si un TITRE commence par "N -", et qu'une image N existe, elle est utilisée pour cette slide.
+    - Sinon, la slide est en texte seul.
     """
     pres = init_presentation("Présentation Texte", "Mode Rapide - HEC")
-    for s in data_slides:
-        add_slide_layout(pres, s['titre'], s['points'], image_stream=global_image_stream)
+
+    image_files = image_files or []
+
+    for idx, s in enumerate(data_slides):
+        titre_brut = s['titre']
+        image_stream = None
+
+        # Détection d'un numéro en début de titre: "N - Titre"
+        m = re.match(r"^(\d+)\s*-\s*(.+)$", titre_brut)
+        if m:
+            numero = int(m.group(1))
+            titre = m.group(2).strip()
+
+            # Mapping vers l'image correspondante (1-based -> 0-based)
+            if 1 <= numero <= len(image_files):
+                try:
+                    img_file = image_files[numero - 1]
+                    img_bytes = img_file.read()
+                    image_stream = BytesIO(img_bytes)
+                except Exception as e:
+                    print(f"Erreur lecture image pour le slide {numero}: {e}")
+        else:
+            titre = titre_brut
+
+        add_slide_layout(pres, titre, s['points'], image_stream=image_stream)
     
     buffer = BytesIO()
     pres.save(buffer)
