@@ -61,6 +61,22 @@ def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=No
 
     image_files = image_files or []
 
+    # Construction d'un mapping numero -> contenu d'image à partir du nom du fichier
+    # Exemple de noms acceptés : "1 toto.jpg", "5 maison.png" -> 1 et 5
+    image_map = {}
+    for f in image_files:
+        try:
+            name = getattr(f, "name", "") or ""
+            m_num = re.match(r"^(\d+)", name.strip())
+            if not m_num:
+                continue
+            numero = int(m_num.group(1))
+            if numero not in image_map:
+                img_bytes = f.read()
+                image_map[numero] = img_bytes
+        except Exception as e:
+            print(f"Erreur préparation image '{getattr(f, 'name', '?')}' : {e}")
+
     for idx, s in enumerate(data_slides):
         titre_brut = s['titre']
         image_stream = None
@@ -68,16 +84,15 @@ def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=No
         # Détection d'un numéro en début de titre: "N - Titre"
         m = re.match(r"^(\d+)\s*-\s*(.+)$", titre_brut)
         if m:
-            numero = int(m.group(1))
+            numero_slide = int(m.group(1))
 
-            # Mapping vers l'image correspondante (1-based -> 0-based)
-            if 1 <= numero <= len(image_files):
+            # Mapping vers l'image correspondante via le numéro
+            img_bytes = image_map.get(numero_slide)
+            if img_bytes is not None:
                 try:
-                    img_file = image_files[numero - 1]
-                    img_bytes = img_file.read()
                     image_stream = BytesIO(img_bytes)
                 except Exception as e:
-                    print(f"Erreur lecture image pour le slide {numero}: {e}")
+                    print(f"Erreur lecture image pour le slide {numero_slide}: {e}")
 
         # On conserve le titre tel quel (avec le numéro) pour l'affichage
         add_slide_layout(pres, titre_brut, s['points'], image_stream=image_stream)
