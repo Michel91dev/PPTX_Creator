@@ -85,13 +85,20 @@ def get_ai_pipeline():
     if _pipe_cache is not None:
         return _pipe_cache
     
-    print(">>> Chargement Modèle IA (CPU)...")
     try:
         model_id = "runwayml/stable-diffusion-v1-5"
-        # Sur CPU, on reste en float32 pour éviter les problèmes de compatibilité
-        pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
 
-        pipe = pipe.to("cpu")
+        # Préférence : exécution sur MPS en float16 pour les puces Apple Silicon
+        if torch.backends.mps.is_available():
+            print(">>> Chargement Modèle IA (MPS, float16)...")
+            pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
+            pipe = pipe.to("mps")
+        else:
+            # Fallback : CPU en float32 pour compatibilité maximale
+            print(">>> Chargement Modèle IA (CPU, float32)...")
+            pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
+            pipe = pipe.to("cpu")
+
         pipe.enable_attention_slicing()
 
         # Désactivation du filtre NSFW par défaut de diffusers :
