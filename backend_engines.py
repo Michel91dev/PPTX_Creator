@@ -54,25 +54,42 @@ def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=No
     """Génère une présentation texte seul.
 
     image_files : liste optionnelle de fichiers Streamlit uploadés.
-    - Les images sont appliquées dans l'ordre : 1ʳᵉ image -> 1ʳᵉ slide, 2ᵉ -> 2ᵉ slide, etc.
-    - Si le nombre de slides dépasse le nombre d'images, les slides restantes sont en texte seul.
+    - Les images sont appliquées en fonction du numéro au début du nom du fichier (1 à 99).
+      Exemple : "01 campus.jpg" ou "1 campus.jpg" -> slide 1 ; "10 salle.png" -> slide 10.
+    - Si aucune image n'est trouvée pour un numéro de slide donné, la slide reste en texte seul.
     """
     pres = init_presentation("Présentation Texte", "Mode Rapide - HEC")
 
     image_files = image_files or []
 
+    # Construction d'un mapping numero_de_slide -> contenu d'image
+    # On lit 1 ou 2 chiffres au tout début du nom de fichier : 1..99
+    image_map = {}
+    for f in image_files:
+        try:
+            name = getattr(f, "name", "") or ""
+            m = re.match(r"^(\d{1,2})", name.strip())
+            if not m:
+                continue
+            numero = int(m.group(1))
+            if 1 <= numero <= 99 and numero not in image_map:
+                img_bytes = f.read()
+                image_map[numero] = img_bytes
+        except Exception as e:
+            print(f"Erreur préparation image '{getattr(f, 'name', '?')}' : {e}")
+
     for idx, s in enumerate(data_slides):
         titre_brut = s['titre']
         image_stream = None
 
-        # Mapping simple par ordre : image_files[0] -> slide 0, image_files[1] -> slide 1, etc.
-        if idx < len(image_files):
+        # Numéro de slide logique (1-based)
+        slide_num = idx + 1
+        img_bytes = image_map.get(slide_num)
+        if img_bytes is not None:
             try:
-                f = image_files[idx]
-                img_bytes = f.read()
                 image_stream = BytesIO(img_bytes)
             except Exception as e:
-                print(f"Erreur lecture image pour le slide {idx + 1}: {e}")
+                print(f"Erreur lecture image pour le slide {slide_num}: {e}")
 
         add_slide_layout(pres, titre_brut, s['points'], image_stream=image_stream)
     
