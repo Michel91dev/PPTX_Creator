@@ -53,7 +53,8 @@ with col_config:
 
     # Options avancées pour le mode IA Locale
     ia_steps = 30
-    ia_per_slide = False
+    ia_per_slide = True  # toujours image par slide côté IA, sauf en mode test
+    ia_test_single = False
     if "IA Locale" in mode:
         ia_steps = st.slider(
             "Qualité IA (nombre de pas d'inférence)",
@@ -63,10 +64,13 @@ with col_config:
             step=5,
             help="Plus le nombre de pas est élevé, plus l'image est détaillée mais lente à générer."
         )
-        ia_per_slide = st.checkbox(
-            "Générer une image pour chaque slide",
+        ia_test_single = st.checkbox(
+            "Tester sur un seul slide (première image uniquement)",
             value=False,
-            help="Si décoché, seule la première slide aura une image IA (plus rapide pour les tests)."
+            help=(
+                "Si coché, seule la première slide sera générée : "
+                "soit avec une photo uploadée numérotée '1 ...', soit avec une image IA à partir du VISUEL."
+            ),
         )
 
     # Photos optionnelles par slide (utilisées uniquement en mode Texte Seul)
@@ -176,11 +180,14 @@ with col_content:
             st.success(f"{len(data)} slides détectées.")
 
             resultat_pptx = None
+            # Mode test (uniquement pertinent pour l'IA Locale) : on ne garde qu'un seul slide
+            test_single = ia_test_single if "IA Locale" in mode else False
+            data_to_use = data[:1] if test_single else data
 
             # ROUTAGE SELON LE MODE
             if "Texte" in mode:
                 # On passe la liste brute des fichiers uploadés au backend
-                resultat_pptx = engine.generate_text_only(data, image_files=uploaded_images)
+                resultat_pptx = engine.generate_text_only(data_to_use, image_files=uploaded_images)
 
             elif "IA Locale" in mode:
                 # Deux barres de progression spécifiques pour l'IA
@@ -196,7 +203,7 @@ with col_content:
                     progress_image.progress(1.0, text=txt)
 
 
-                resultat_pptx = engine.generate_local_ai(data, update_prog, ia_steps, ia_per_slide, uploaded_images)
+                resultat_pptx = engine.generate_local_ai(data_to_use, update_prog, ia_steps, ia_per_slide, uploaded_images, test_single=test_single)
                 progress_global.empty()
                 progress_image.empty()
 
@@ -212,4 +219,4 @@ with col_content:
 
     # Mention auteur / date
     st.markdown("---")
-    st.caption("Application 'Générateur de Présentations PowerPoint' développée par Michel Safars – 24 novembre 2025, 22h15.")
+    st.caption("Application 'Générateur de Présentations PowerPoint' développée par Michel Safars pour sa belle Béatrice – 24 novembre 2025, 22h15.")

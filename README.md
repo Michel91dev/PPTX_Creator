@@ -76,4 +76,32 @@ Ouvrir ensuite l’URL locale affichée (ex. `http://localhost:8501`).
 
 ## 7. Auteur
 
-Application "Générateur de Présentations PowerPoint" développée par **Michel Safars**, version stable du 24 novembre 2025 (commit `2025 1124 2219 Dernières améliorations UI+IA OK`).
+Application "Générateur de Présentations PowerPoint" développée par **Michel Safars** pour sa belle Béatrice, version stable du 24 novembre 2025 (commit `2025 1124 2219 Dernières améliorations UI+IA OK`).
+
+## 8. Workflow local → GitHub → Streamlit Cloud (mémo)
+
+- **Développement / test local**  
+  1. Modifier le code dans ce dossier.  
+  2. Tester en local :
+
+     ```bash
+     python3 -m streamlit run app_launcher.py
+     ```
+
+- **Valider une version stable**  
+  1. Sauvegarder les modifications :
+
+     ```bash
+     git commit -am "AAAA MMJJ HHMM Description version OK"
+     ```
+
+  2. Envoyer sur GitHub :
+
+     ```bash
+     git push
+     ```
+
+- **Mise à jour de la version en ligne (Streamlit Cloud)**  
+  - L’app en ligne est connectée au repo GitHub `Michel91dev/PPTX_Creator` sur la branche `main`.  
+  - À chaque `git push`, Streamlit Cloud reconstruit automatiquement l’app avec le nouveau code.  
+  - Il suffit ensuite de **rafraîchir l’URL `.streamlit.app`** pour voir la nouvelle version.

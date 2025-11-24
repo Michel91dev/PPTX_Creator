@@ -165,7 +165,7 @@ def get_ai_pipeline():
         print(f"Erreur chargement IA (CPU): {e}")
         return None
 
-def generate_local_ai(data_slides, progress_callback=None, num_steps=30, per_slide_images=False, image_files=None):
+def generate_local_ai(data_slides, progress_callback=None, num_steps=30, per_slide_images=False, image_files=None, test_single=False):
     pipe = get_ai_pipeline()
     if not pipe:
         return None
