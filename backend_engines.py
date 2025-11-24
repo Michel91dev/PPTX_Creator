@@ -91,6 +91,13 @@ def get_ai_pipeline():
         pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
         pipe = pipe.to("mps")
         pipe.enable_attention_slicing()
+
+        # Désactivation du filtre NSFW par défaut de diffusers :
+        # en local, on préfère éviter le remplacement silencieux des images par du noir.
+        # Attention : cela supprime la protection automatique contre le contenu sensible.
+        if hasattr(pipe, "safety_checker"):
+            pipe.safety_checker = None
+
         _pipe_cache = pipe
         return pipe
     except Exception as e:
