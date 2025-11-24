@@ -113,7 +113,7 @@ def get_ai_pipeline():
         print(f"Erreur chargement IA: {e}")
         return None
 
-def generate_local_ai(data_slides, progress_callback=None):
+def generate_local_ai(data_slides, progress_callback=None, num_steps=30, per_slide_images=False):
     pipe = get_ai_pipeline()
     if not pipe:
         return None
@@ -130,11 +130,16 @@ def generate_local_ai(data_slides, progress_callback=None):
 
         img_stream = None
 
-        # Pour le test : on ne génère une image IA que pour la première slide
-        if i == 0 and prompt:
+        # Génération IA : soit uniquement pour la première slide, soit pour chaque slide
+        doit_generer = False
+        if per_slide_images and prompt:
+            doit_generer = True
+        elif (not per_slide_images) and i == 0 and prompt:
+            doit_generer = True
+
+        if doit_generer:
             try:
-                # Exécution sur CPU (float16) le temps du debug
-                image = pipe(prompt, num_inference_steps=30).images[0]
+                image = pipe(prompt, num_inference_steps=num_steps).images[0]
                 img_stream = BytesIO()
                 image.save(img_stream, format="PNG")
                 img_stream.seek(0)

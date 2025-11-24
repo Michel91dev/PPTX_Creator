@@ -51,6 +51,24 @@ with col_config:
         index=0
     )
 
+    # Options avancées pour le mode IA Locale
+    ia_steps = 30
+    ia_per_slide = False
+    if "IA Locale" in mode:
+        ia_steps = st.slider(
+            "Qualité IA (nombre de pas d'inférence)",
+            min_value=10,
+            max_value=50,
+            value=30,
+            step=5,
+            help="Plus le nombre de pas est élevé, plus l'image est détaillée mais lente à générer."
+        )
+        ia_per_slide = st.checkbox(
+            "Générer une image pour chaque slide",
+            value=False,
+            help="Si décoché, seule la première slide aura une image IA (plus rapide pour les tests)."
+        )
+
     st.info("""
     **Format attendu pour le copier-coller :**
 
@@ -100,7 +118,7 @@ with col_content:
                     progress_image.progress(1.0, text=txt)
 
 
-                resultat_pptx = engine.generate_local_ai(data, update_prog)
+                resultat_pptx = engine.generate_local_ai(data, update_prog, ia_steps, ia_per_slide)
                 progress_global.empty()
                 progress_image.empty()
 
