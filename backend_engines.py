@@ -85,13 +85,12 @@ def get_ai_pipeline():
     if _pipe_cache is not None:
         return _pipe_cache
     
-    print(">>> Chargement Modèle IA (MPS)...")
+    print(">>> Chargement Modèle IA (CPU)...")
     try:
         model_id = "runwayml/stable-diffusion-v1-5"
-        pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
+        # Sur CPU, on reste en float32 pour éviter les problèmes de compatibilité
+        pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
 
-        # DEBUG: exécution sur CPU pour valider que le problème d'image noire
-        # ne vient pas du modèle lui-même mais de MPS.
         pipe = pipe.to("cpu")
         pipe.enable_attention_slicing()
 
