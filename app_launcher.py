@@ -74,7 +74,7 @@ with col_config:
         "Photos pour les slides (slide 1, slide 2, etc.)",
         type=["png", "jpg", "jpeg"],
         accept_multiple_files=True,
-        help="La 1ère image sera utilisée pour le slide 1, la 2ème pour le slide 2, etc. Si le TITRE commence par '3 -', on utilisera la 3ème image."
+        help="La 1ère image sera utilisée pour le 1er slide, la 2ème pour le 2ème, etc. Le titre des slides et le nom du fichier n'influencent pas le mapping, seul l'ordre compte."
     )
 
     st.info("""

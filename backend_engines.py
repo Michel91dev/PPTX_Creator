@@ -54,47 +54,26 @@ def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=No
     """Génère une présentation texte seul.
 
     image_files : liste optionnelle de fichiers Streamlit uploadés.
-    - Si un TITRE commence par "N -", et qu'une image N existe, elle est utilisée pour cette slide.
-    - Sinon, la slide est en texte seul.
+    - Les images sont appliquées dans l'ordre : 1ʳᵉ image -> 1ʳᵉ slide, 2ᵉ -> 2ᵉ slide, etc.
+    - Si le nombre de slides dépasse le nombre d'images, les slides restantes sont en texte seul.
     """
     pres = init_presentation("Présentation Texte", "Mode Rapide - HEC")
 
     image_files = image_files or []
 
-    # Construction d'un mapping numero -> contenu d'image à partir du nom du fichier
-    # Exemple de noms acceptés : "1 toto.jpg", "5 maison.png" -> 1 et 5
-    image_map = {}
-    for f in image_files:
-        try:
-            name = getattr(f, "name", "") or ""
-            m_num = re.match(r"^(\d+)", name.strip())
-            if not m_num:
-                continue
-            numero = int(m_num.group(1))
-            if numero not in image_map:
-                img_bytes = f.read()
-                image_map[numero] = img_bytes
-        except Exception as e:
-            print(f"Erreur préparation image '{getattr(f, 'name', '?')}' : {e}")
-
     for idx, s in enumerate(data_slides):
         titre_brut = s['titre']
         image_stream = None
 
-        # Détection d'un numéro en début de titre: "N - Titre"
-        m = re.match(r"^(\d+)\s*-\s*(.+)$", titre_brut)
-        if m:
-            numero_slide = int(m.group(1))
+        # Mapping simple par ordre : image_files[0] -> slide 0, image_files[1] -> slide 1, etc.
+        if idx < len(image_files):
+            try:
+                f = image_files[idx]
+                img_bytes = f.read()
+                image_stream = BytesIO(img_bytes)
+            except Exception as e:
+                print(f"Erreur lecture image pour le slide {idx + 1}: {e}")
 
-            # Mapping vers l'image correspondante via le numéro
-            img_bytes = image_map.get(numero_slide)
-            if img_bytes is not None:
-                try:
-                    image_stream = BytesIO(img_bytes)
-                except Exception as e:
-                    print(f"Erreur lecture image pour le slide {numero_slide}: {e}")
-
-        # On conserve le titre tel quel (avec le numéro) pour l'affichage
         add_slide_layout(pres, titre_brut, s['points'], image_stream=image_stream)
     
     buffer = BytesIO()
