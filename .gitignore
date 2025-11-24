@@ -1,0 +1,17 @@
+# Python / Streamlit / IDE
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.DS_Store
+
+# Environnements virtuels
+.venv/
+venv/
+.env/
+
+# Fichiers générés par l'application
+*.pptx
+
+# Config locale Streamlit
+.streamlit/
