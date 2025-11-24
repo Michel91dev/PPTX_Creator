@@ -49,10 +49,14 @@ def add_slide_layout(pres, titre, points, image_stream=None):
         slide.shapes.add_picture(image_stream, Inches(5.8), Inches(1.8), width=Inches(3.8))
 
 # --- MOTEUR 1 : TEXTE SEUL ---
-def generate_text_only(data_slides, filename="Sortie_Texte.pptx"):
+def generate_text_only(data_slides, filename="Sortie_Texte.pptx", global_image_stream=None):
+    """Génère une présentation texte seul.
+
+    Si global_image_stream est fourni, la même image est utilisée sur toutes les slides.
+    """
     pres = init_presentation("Présentation Texte", "Mode Rapide - HEC")
     for s in data_slides:
-        add_slide_layout(pres, s['titre'], s['points'], image_stream=None)
+        add_slide_layout(pres, s['titre'], s['points'], image_stream=global_image_stream)
     
     buffer = BytesIO()
     pres.save(buffer)
@@ -90,32 +94,40 @@ def get_ai_pipeline():
     if _pipe_cache is not None:
         return _pipe_cache
     
-    try:
-        model_id = "runwayml/stable-diffusion-v1-5"
+    model_id = "runwayml/stable-diffusion-v1-5"
 
-        # Préférence : exécution sur MPS en float16 pour les puces Apple Silicon
-        if torch.backends.mps.is_available():
+    # 1) Tentative MPS float16 (préférée sur Apple Silicon)
+    if torch.backends.mps.is_available():
+        try:
             print(">>> Chargement Modèle IA (MPS, float16)...")
             pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
             pipe = pipe.to("mps")
-        else:
-            # Fallback : CPU en float32 pour compatibilité maximale
-            print(">>> Chargement Modèle IA (CPU, float32)...")
-            pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
-            pipe = pipe.to("cpu")
+
+            pipe.enable_attention_slicing()
+
+            if hasattr(pipe, "safety_checker"):
+                pipe.safety_checker = None
+
+            _pipe_cache = pipe
+            return pipe
+        except Exception as e:
+            print(f"Erreur chargement IA sur MPS, bascule sur CPU: {e}")
+
+    # 2) Fallback CPU float32
+    try:
+        print(">>> Chargement Modèle IA (CPU, float32)...")
+        pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
+        pipe = pipe.to("cpu")
 
         pipe.enable_attention_slicing()
 
-        # Désactivation du filtre NSFW par défaut de diffusers :
-        # en local, on préfère éviter le remplacement silencieux des images par du noir.
-        # Attention : cela supprime la protection automatique contre le contenu sensible.
         if hasattr(pipe, "safety_checker"):
             pipe.safety_checker = None
 
         _pipe_cache = pipe
         return pipe
     except Exception as e:
-        print(f"Erreur chargement IA: {e}")
+        print(f"Erreur chargement IA (CPU): {e}")
         return None
 
 def generate_local_ai(data_slides, progress_callback=None, num_steps=30, per_slide_images=False):
