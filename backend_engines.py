@@ -112,11 +112,19 @@ def generate_local_ai(data_slides, progress_callback=None):
         if progress_callback:
             progress_callback(i / total, f"Génération visuel {i+1}/{total} : {prompt[:30]}...")
 
-        # Génération Image
-        image = pipe(prompt, num_inference_steps=30).images[0]
-        img_stream = BytesIO()
-        image.save(img_stream, format="PNG")
-        img_stream.seek(0)
+        img_stream = None
+
+        # Pour le test : on ne génère une image IA que pour la première slide
+        if i == 0 and prompt:
+            try:
+                # Contexte MPS en float16 pour éviter les artefacts / images noires
+                with torch.autocast("mps", dtype=torch.float16):
+                    image = pipe(prompt, num_inference_steps=30).images[0]
+                img_stream = BytesIO()
+                image.save(img_stream, format="PNG")
+                img_stream.seek(0)
+            except Exception as e:
+                print(f"Erreur génération image IA pour la slide {i+1}: {e}")
 
         add_slide_layout(pres, s['titre'], s['points'], img_stream)
 

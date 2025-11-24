@@ -87,16 +87,22 @@ with col_content:
                     resultat_pptx = engine.generate_web_images(data)
 
             elif "IA Locale" in mode:
-                # Barre de progression spécifique pour l'IA
-                progress_bar = st.progress(0, text="Initialisation IA...")
+                # Deux barres de progression spécifiques pour l'IA
+                progress_global = st.progress(0, text="Initialisation IA...")
+                progress_image = st.progress(0, text="En attente de la première image...")
 
 
                 def update_prog(val, txt):
-                    progress_bar.progress(val, text=txt)
+                    # Barre 1 : progression globale (0-100%)
+                    progress_global.progress(val, text=f"Progression globale : {int(val * 100)}%")
+
+                    # Barre 2 : mise à jour image par image avec le texte détaillé
+                    progress_image.progress(1.0, text=txt)
 
 
                 resultat_pptx = engine.generate_local_ai(data, update_prog)
-                progress_bar.empty()
+                progress_global.empty()
+                progress_image.empty()
 
             # BOUTON TELECHARGEMENT FINAL
             if resultat_pptx:
