@@ -1,0 +1,7 @@
+streamlit
+python-pptx
+requests
+torch
+diffusers
+transformers
+accelerate
