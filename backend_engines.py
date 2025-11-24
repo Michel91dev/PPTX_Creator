@@ -28,8 +28,13 @@ def add_slide_layout(pres, titre, points, image_stream=None):
     p.font.bold = True
     p.font.name = 'Arial'
 
-    # Texte (Gauche)
-    box_txt = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(5), Inches(5))
+    # Texte : largeur différente selon la présence d'une image
+    if image_stream:
+        # Mode texte + image : colonne gauche plus étroite
+        box_txt = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(5), Inches(5))
+    else:
+        # Mode texte seul : zone de texte élargie sur la droite
+        box_txt = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(9), Inches(5))
     tf_txt = box_txt.text_frame
     tf_txt.word_wrap = True
     for point in points:
