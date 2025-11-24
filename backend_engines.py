@@ -69,7 +69,6 @@ def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=No
         m = re.match(r"^(\d+)\s*-\s*(.+)$", titre_brut)
         if m:
             numero = int(m.group(1))
-            titre = m.group(2).strip()
 
             # Mapping vers l'image correspondante (1-based -> 0-based)
             if 1 <= numero <= len(image_files):
@@ -79,10 +78,9 @@ def generate_text_only(data_slides, filename="Sortie_Texte.pptx", image_files=No
                     image_stream = BytesIO(img_bytes)
                 except Exception as e:
                     print(f"Erreur lecture image pour le slide {numero}: {e}")
-        else:
-            titre = titre_brut
 
-        add_slide_layout(pres, titre, s['points'], image_stream=image_stream)
+        # On conserve le titre tel quel (avec le numéro) pour l'affichage
+        add_slide_layout(pres, titre_brut, s['points'], image_stream=image_stream)
     
     buffer = BytesIO()
     pres.save(buffer)
