@@ -89,7 +89,10 @@ def get_ai_pipeline():
     try:
         model_id = "runwayml/stable-diffusion-v1-5"
         pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
-        pipe = pipe.to("mps")
+
+        # DEBUG: exécution sur CPU pour valider que le problème d'image noire
+        # ne vient pas du modèle lui-même mais de MPS.
+        pipe = pipe.to("cpu")
         pipe.enable_attention_slicing()
 
         # Désactivation du filtre NSFW par défaut de diffusers :
@@ -124,9 +127,8 @@ def generate_local_ai(data_slides, progress_callback=None):
         # Pour le test : on ne génère une image IA que pour la première slide
         if i == 0 and prompt:
             try:
-                # Contexte MPS en float16 pour éviter les artefacts / images noires
-                with torch.autocast("mps", dtype=torch.float16):
-                    image = pipe(prompt, num_inference_steps=30).images[0]
+                # Exécution sur CPU (float16) le temps du debug
+                image = pipe(prompt, num_inference_steps=30).images[0]
                 img_stream = BytesIO()
                 image.save(img_stream, format="PNG")
                 img_stream.seek(0)
