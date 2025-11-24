@@ -38,7 +38,7 @@ def parse_input_text(raw_text):
 
 
 # --- INTERFACE UTILISATEUR ---
-st.title("🚁 Générateur de Présentation HEC")
+st.title("🚁 Générateur de Présentations PowerPoint")
 st.markdown("---")
 
 col_config, col_content = st.columns([1, 2])
@@ -77,29 +77,95 @@ with col_config:
         help="La 1ère image sera utilisée pour le 1er slide, la 2ème pour le 2ème, etc. Le titre des slides et le nom du fichier n'influencent pas le mapping, seul l'ordre compte."
     )
 
-    st.info("""
-    **Format attendu pour le copier-coller :**
+    with st.expander("Format du texte à coller (TITRE / POINTS / VISUEL)"):
+        st.markdown("""
+        **Format de base :**
 
-    TITRE: Titre de la slide
-    POINTS:
-    - Premier point clé
-    - Deuxième point clé
-    VISUEL: description courte de l'image souhaitée **en langage naturel**
+        ```text
+        TITRE: Titre de la slide
+        POINTS:
+        - Premier point clé
+        - Deuxième point clé
+        VISUEL: description courte de l'image souhaitée en langage naturel (optionnel)
+        ```
 
-    Exemples de VISUEL pour l'IA locale :
-    - "photo aérienne du campus HEC au lever du soleil, style réaliste corporate"
-    - "illustration flat design minimaliste d'étudiants travaillant en groupe dans une salle de cours moderne"
-    - "vue isométrique d'un bâtiment de business school entouré d'arbres, couleurs sobres bleu et gris"
+        Si vous êtes en **mode Texte Seul (Instant)**, la ligne `VISUEL:` est ignorée pour les images
+        (elle reste là pour compatibilité avec le mode IA Locale).
+        """)
 
-    Vous pouvez aussi mettre une **URL d'image** (http...) si vous utilisez le mode "Texte Seul (Instant)".
-    """)
+    with st.expander("Images en mode Texte Seul (fichiers locaux)"):
+        st.markdown("""
+        - Uploadez une ou plusieurs images dans la zone **"Photos pour les slides"**.
+        - Le positionnement se fait **par numéro au début du nom du fichier** (1 à 99) :
+          - `1 campus.jpg` ou `01 campus.jpg` → image pour le **slide 1**
+          - `2 amphi.png` → image pour le **slide 2**
+          - `10 salle.png` → image pour le **slide 10**
+        - Le **titre de la slide** et le reste du nom du fichier n'influencent pas le mapping.
+        - Si aucun fichier ne commence par le numéro d'une slide donnée, cette slide sera en **texte seul**.
+        """)
+
+    with st.expander("VISUEL et mode IA Locale (Stable Diffusion)"):
+        st.markdown("""
+        En mode **IA Locale (Stable Diffusion)**, le contenu après `VISUEL:` est utilisé comme
+        **prompt IA** pour générer l'image.
+
+        Exemples de VISUEL pour l'IA locale :
+
+        - `photo aérienne du campus HEC au lever du soleil, style réaliste corporate`
+        - `illustration flat design minimaliste d'étudiants travaillant en groupe dans une salle de cours moderne`
+        - `vue isométrique d'un bâtiment de business school entouré d'arbres, couleurs sobres bleu et gris`
+
+        Plus la description est précise (type d'image, sujet, style, ambiance), plus le résultat sera pertinent.
+        """)
 
 with col_content:
     st.header("2. Contenu")
+
+    # Exemple de 4 slides que l'utilisateur peut insérer d'un clic
+    example_text = (
+        "TITRE: 1 - Expérience utilisateur\n"
+        "POINTS:\n"
+        "- Coller un texte structuré TITRE / POINTS / VISUEL dans l'interface\n"
+        "- Choisir le mode 'Texte Seul' ou 'IA Locale' en un clic\n"
+        "- Ajuster la qualité des images avec le slider de pas d'inférence\n"
+        "VISUEL: illustration simple d'une interface web avec deux colonnes, style moderne\n\n"
+
+        "TITRE: 2 - Mode Texte Seul\n"
+        "POINTS:\n"
+        "- TITRE et POINTS uniquement, VISUEL ignoré pour les images\n"
+        "- Uploader des images nommées '1 campus.jpg', '2 amphi.png', etc.\n"
+        "- Chaque numéro au début du fichier correspond à un numéro de slide\n"
+        "VISUEL: description optionnelle, utile surtout pour le mode IA Locale\n\n"
+
+        "TITRE: 3 - Mode IA Locale (Stable Diffusion)\n"
+        "POINTS:\n"
+        "- Utiliser VISUEL pour décrire l'image souhaitée en langage naturel\n"
+        "- Cocher 'Générer une image pour chaque slide' si besoin\n"
+        "- Laisser les champs VISUEL vides sur les slides sans image IA\n"
+        "VISUEL: photo réaliste du campus HEC au lever du soleil, style corporate\n\n"
+
+        "TITRE: 4 - Bonnes pratiques\n"
+        "POINTS:\n"
+        "- Limiter chaque slide à une idée principale\n"
+        "- Utiliser des bullets courts et lisibles\n"
+        "- Garder un ton cohérent sur toute la présentation\n"
+        "VISUEL: illustration minimaliste d'un tableau blanc avec trois puces et un check vert\n"
+    )
+
+    if st.button("Insérer un exemple de 4 slides"):
+        st.session_state["hec_example_text"] = example_text
+
     raw_input = st.text_area(
         "Collez ici le contenu généré par votre IA (ChatGPT/Claude) :",
         height=400,
-        placeholder="TITRE: Introduction\nPOINTS:\n- Contexte\n- Enjeux\nVISUEL: une photo de bureau..."
+        value=st.session_state.get("hec_example_text", ""),
+        placeholder=(
+            "TITRE: Titre de la slide\n"
+            "POINTS:\n"
+            "- Premier point clé\n"
+            "- Deuxième point clé\n"
+            "VISUEL: description courte de l'image souhaitée (optionnel)\n"
+        ),
     )
 
     if st.button("Lancer la génération", type="primary"):
@@ -130,7 +196,7 @@ with col_content:
                     progress_image.progress(1.0, text=txt)
 
 
-                resultat_pptx = engine.generate_local_ai(data, update_prog, ia_steps, ia_per_slide)
+                resultat_pptx = engine.generate_local_ai(data, update_prog, ia_steps, ia_per_slide, uploaded_images)
                 progress_global.empty()
                 progress_image.empty()
 
@@ -143,3 +209,7 @@ with col_content:
                     file_name="Presentation_HEC_Gen.pptx",
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
                 )
+
+    # Mention auteur / date
+    st.markdown("---")
+    st.caption("Application 'Générateur de Présentations PowerPoint' développée par Michel Safars – 24 novembre 2025, 22h15.")

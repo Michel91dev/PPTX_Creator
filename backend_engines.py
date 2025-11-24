@@ -165,40 +165,66 @@ def get_ai_pipeline():
         print(f"Erreur chargement IA (CPU): {e}")
         return None
 
-def generate_local_ai(data_slides, progress_callback=None, num_steps=30, per_slide_images=False):
+def generate_local_ai(data_slides, progress_callback=None, num_steps=30, per_slide_images=False, image_files=None):
     pipe = get_ai_pipeline()
     if not pipe:
         return None
 
     pres = init_presentation("Présentation AI", "Génération Locale Mac Silicon")
+
+    # Prépare un mapping numero_de_slide -> image uploadée (1..99) si des fichiers sont fournis
+    image_files = image_files or []
+    image_map = {}
+    for f in image_files:
+        try:
+            name = getattr(f, "name", "") or ""
+            m = re.match(r"^(\d{1,2})", name.strip())
+            if not m:
+                continue
+            numero = int(m.group(1))
+            if 1 <= numero <= 99 and numero not in image_map:
+                img_bytes = f.read()
+                image_map[numero] = img_bytes
+        except Exception as e:
+            print(f"Erreur préparation image IA-upload '{getattr(f, 'name', '?')}' : {e}")
     
     total = len(data_slides)
     for i, s in enumerate(data_slides):
         prompt = s.get('visuel', '') # Ici 'visuel' contient le prompt
-        
+        slide_num = i + 1
+
         # Mise à jour barre de progression UI
         if progress_callback:
-            progress_callback(i / total, f"Génération visuel {i+1}/{total} : {prompt[:30]}...")
+            progress_callback(i / total, f"Traitement visuel {i+1}/{total} : {prompt[:30]}...")
 
         img_stream = None
 
-        # Génération IA : soit uniquement pour la première slide, soit pour chaque slide
-        doit_generer = False
-        if per_slide_images and prompt:
-            doit_generer = True
-        elif (not per_slide_images) and i == 0 and prompt:
-            doit_generer = True
-
-        if doit_generer:
+        # 1) Priorité à une image uploadée pour ce numéro de slide
+        img_bytes = image_map.get(slide_num)
+        if img_bytes is not None:
             try:
-                image = pipe(prompt, num_inference_steps=num_steps).images[0]
-                img_stream = BytesIO()
-                image.save(img_stream, format="PNG")
-                img_stream.seek(0)
+                img_stream = BytesIO(img_bytes)
             except Exception as e:
-                print(f"Erreur génération image IA pour la slide {i+1}: {e}")
+                print(f"Erreur lecture image uploadée pour la slide {slide_num}: {e}")
 
-        add_slide_layout(pres, s['titre'], s['points'], img_stream)
+        # 2) Sinon, on génère via IA selon la config
+        elif prompt:
+            doit_generer = False
+            if per_slide_images:
+                doit_generer = True
+            elif (not per_slide_images) and i == 0:
+                doit_generer = True
+
+            if doit_generer:
+                try:
+                    image = pipe(prompt, num_inference_steps=num_steps).images[0]
+                    img_stream = BytesIO()
+                    image.save(img_stream, format="PNG")
+                    img_stream.seek(0)
+                except Exception as e:
+                    print(f"Erreur génération image IA pour la slide {slide_num}: {e}")
+
+        add_slide_layout(pres, s['titre'], s['points'], image_stream=img_stream)
 
     buffer = BytesIO()
     pres.save(buffer)
