@@ -45,35 +45,9 @@ col_config, col_content = st.columns([1, 2])
 
 with col_config:
     st.header("1. Configuration")
-    mode = st.radio(
-        "Choisir le moteur :",
-        ["Texte Seul (Instant)", "IA Locale (Stable Diffusion)"],
-        index=0
-    )
+    st.markdown("**Mode actif : Texte Seul (stable pour usage en ligne)**")
 
-    # Options avancées pour le mode IA Locale
-    ia_steps = 30
-    ia_per_slide = True  # toujours image par slide côté IA, sauf en mode test
-    ia_test_single = False
-    if "IA Locale" in mode:
-        ia_steps = st.slider(
-            "Qualité IA (nombre de pas d'inférence)",
-            min_value=10,
-            max_value=50,
-            value=30,
-            step=5,
-            help="Plus le nombre de pas est élevé, plus l'image est détaillée mais lente à générer."
-        )
-        ia_test_single = st.checkbox(
-            "Tester sur un seul slide (première image uniquement)",
-            value=False,
-            help=(
-                "Si coché, seule la première slide sera générée : "
-                "soit avec une photo uploadée numérotée '1 ...', soit avec une image IA à partir du VISUEL."
-            ),
-        )
-
-    # Photos optionnelles par slide (utilisées uniquement en mode Texte Seul)
+    # Photos optionnelles par slide
     uploaded_images = st.file_uploader(
         "Photos pour les slides (slide 1, slide 2, etc.)",
         type=["png", "jpg", "jpeg"],
@@ -180,32 +154,8 @@ with col_content:
             st.success(f"{len(data)} slides détectées.")
 
             resultat_pptx = None
-            # Mode test (uniquement pertinent pour l'IA Locale) : on ne garde qu'un seul slide
-            test_single = ia_test_single if "IA Locale" in mode else False
-            data_to_use = data[:1] if test_single else data
-
-            # ROUTAGE SELON LE MODE
-            if "Texte" in mode:
-                # On passe la liste brute des fichiers uploadés au backend
-                resultat_pptx = engine.generate_text_only(data_to_use, image_files=uploaded_images)
-
-            elif "IA Locale" in mode:
-                # Deux barres de progression spécifiques pour l'IA
-                progress_global = st.progress(0, text="Initialisation IA...")
-                progress_image = st.progress(0, text="En attente de la première image...")
-
-
-                def update_prog(val, txt):
-                    # Barre 1 : progression globale (0-100%)
-                    progress_global.progress(val, text=f"Progression globale : {int(val * 100)}%")
-
-                    # Barre 2 : mise à jour image par image avec le texte détaillé
-                    progress_image.progress(1.0, text=txt)
-
-
-                resultat_pptx = engine.generate_local_ai(data_to_use, update_prog, ia_steps, ia_per_slide, uploaded_images, test_single=test_single)
-                progress_global.empty()
-                progress_image.empty()
+            # Mode unique : Texte Seul
+            resultat_pptx = engine.generate_text_only(data, image_files=uploaded_images)
 
             # BOUTON TELECHARGEMENT FINAL
             if resultat_pptx:
